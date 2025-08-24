@@ -1,14 +1,22 @@
 name: Monitor Anddea Releases
+
 on:
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
   check-releases:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
       - name: Check Anddea Repo for Releases
         id: check
         run: |
@@ -24,6 +32,7 @@ jobs:
             echo "No new releases."
             echo "NEW_RELEASE=false" >> $GITHUB_ENV
           fi
+
       - name: Commit Release File
         if: env.NEW_RELEASE == 'true'
         run: |
@@ -31,13 +40,15 @@ jobs:
           git config user.email "action@github.com"
           git add last_release.txt
           git commit -m "Update last release"
+          git pull --rebase
           git push
+
       - name: Send Telegram Notification
         if: env.NEW_RELEASE == 'true'
         uses: appleboy/telegram-action@master
         with:
-          to: ${{ secrets.@AnddeaUpdates2 }}
-          token: ${{ secrets.8446073043:AAHDfXtShSd9a3dVVzYDC-HfNWOkqt_QVRk }}
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           message: |
             🔔 New release in Anddea/<revanced-patches>!
             Release: ${{ env.RELEASE_NAME }}
