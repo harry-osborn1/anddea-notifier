@@ -1,46 +1,44 @@
-name: Monitor Anddea Repo
+name: Monitor Anddea Releases
 on:
   schedule:
-    - cron: '*/15 * * * *' # Runs every 15 minutes
-  workflow_dispatch: # Allows manual triggering
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 jobs:
-  check-updates:
+  check-releases:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-      - name: Check Anddea Repo for Updates
+      - name: Check Anddea Repo for Releases
         id: check
         run: |
-          # Fetch the latest commit SHA from Anddea's repo
-          LATEST_SHA=$(curl -s -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/<anddea>/<revanced-patches>/commits?per_page=1 | jq -r '.[0].sha')
-          # Check if the SHA has changed
-          if [ ! -f "last_sha.txt" ] || [ "$(cat last_sha.txt)" != "$LATEST_SHA" ]; then
-            echo "New update found! SHA: $LATEST_SHA"
-            echo "NEW_UPDATE=true" >> $GITHUB_ENV
-            echo "COMMIT_MESSAGE=$(curl -s -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/<AnddeaUsername>/<RepoName>/commits?per_page=1 | jq -r '.[0].commit.message')" >> $GITHUB_ENV
-            echo "$LATEST_SHA" > last_sha.txt
+          LATEST_RELEASE=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/<AnddeaUsername>/<RepoName>/releases?per_page=1 | jq -r '.[0].tag_name')
+          if [ ! -f "last_release.txt" ] || [ "$(cat last_release.txt)" != "$LATEST_RELEASE" ]; then
+            echo "New release found! Tag: $LATEST_RELEASE"
+            echo "NEW_RELEASE=true" >> $GITHUB_ENV
+            echo "RELEASE_NAME=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/<AnddeaUsername>/<RepoName>/releases?per_page=1 | jq -r '.[0].name')" >> $GITHUB_ENV
+            echo "$LATEST_RELEASE" > last_release.txt
           else
-            echo "No new updates."
-            echo "NEW_UPDATE=false" >> $GITHUB_ENV
+            echo "No new releases."
+            echo "NEW_RELEASE=false" >> $GITHUB_ENV
           fi
-      - name: Commit SHA File
-        if: env.NEW_UPDATE == 'true'
+      - name: Commit Release File
+        if: env.NEW_RELEASE == 'true'
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add last_sha.txt
-          git commit -m "Update last SHA"
+          git add last_release.txt
+          git commit -m "Update last release"
           git push
       - name: Send Telegram Notification
-        if: env.NEW_UPDATE == 'true'
+        if: env.NEW_RELEASE == 'true'
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            🔔 New update in Anddea/<RepoName>!
-            Commit: ${{ env.COMMIT_MESSAGE }}
-            Link: https://github.com/<AnddeaUsername>/<RepoName>
+            🔔 New release in Anddea/<RepoName>!
+            Release: ${{ env.RELEASE_NAME }}
+            Link: https://github.com/<anddea>/<revanced-patches>/releases
