@@ -1,7 +1,7 @@
 name: Monitor Anddea Repo
 on:
   schedule:
-    - cron: '*/30 * * * *' # Runs every 30 minutes
+    - cron: '*/15 * * * *' # Runs every 15 minutes
   workflow_dispatch: # Allows manual triggering
 jobs:
   check-updates:
