@@ -22,6 +22,7 @@ jobs:
         run: |
           LATEST_RELEASE=$(curl -s -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/<AnddeaUsername>/<RepoName>/releases?per_page=1 | jq -r '.[0].tag_name')
+
           if [ ! -f "last_release.txt" ] || [ "$(cat last_release.txt)" != "$LATEST_RELEASE" ]; then
             echo "New release found! Tag: $LATEST_RELEASE"
             echo "NEW_RELEASE=true" >> $GITHUB_ENV
@@ -39,9 +40,9 @@ jobs:
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
           git add last_release.txt
-          git commit -m "Update last release"
-          git pull --rebase
-          git push
+          git commit -m "Update last release" || echo "No changes to commit"
+          git pull --rebase origin main
+          git push origin main
 
       - name: Send Telegram Notification
         if: env.NEW_RELEASE == 'true'
